@@ -48,7 +48,9 @@ start-gtp: _start
 
 stop:
 	$(info *** Stopping ONOS and Mininet...)
-	@NGSDN_TOPO_PY=foo docker-compose down -t0
+	docker exec -it mininet1 mn -c
+	docker exec -it mininet2 mn -c
+	@NGSDN_TOPO_PY=foo docker-compose down -t0 --remove-orphans
 
 restart: reset start
 
@@ -63,13 +65,21 @@ onos-log:
 onos-ui:
 	open ${onos_url}/ui
 
-mn-cli:
-	$(info *** Attaching to Mininet CLI...)
+mn1-cli:
+	$(info *** Attaching to Mininet1 CLI...)
 	$(info *** To detach press Ctrl-D (Mininet will keep running))
-	-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q mininet) || echo "*** Detached from Mininet CLI"
+	-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q mininet1) || echo "*** Detached from Mininet CLI"
 
-mn-log:
-	docker logs -f mininet
+mn2-cli:
+	$(info *** Attaching to Mininet2 CLI...)
+	$(info *** To detach press Ctrl-D (Mininet will keep running))
+	-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q mininet2) || echo "*** Detached from Mininet CLI"
+
+mn1-log:
+	docker logs -f mininet1
+
+mn2-log:
+	docker logs -f mininet2
 
 _netcfg:
 	$(info *** Pushing ${NGSDN_NETCFG_JSON} to ONOS...)

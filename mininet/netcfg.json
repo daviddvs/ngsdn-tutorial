@@ -2,7 +2,7 @@
   "devices": {
     "device:leaf1": {
       "basic": {
-        "managementAddress": "grpc://mininet:50001?device_id=1",
+        "managementAddress": "grpc://localhost:50001?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
@@ -17,7 +17,7 @@
     },
     "device:leaf2": {
       "basic": {
-        "managementAddress": "grpc://mininet:50002?device_id=1",
+        "managementAddress": "grpc://localhost:50002?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
@@ -32,7 +32,7 @@
     },
     "device:spine1": {
       "basic": {
-        "managementAddress": "grpc://mininet:50003?device_id=1",
+        "managementAddress": "grpc://localhost:50003?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
@@ -47,7 +47,7 @@
     },
     "device:spine2": {
       "basic": {
-        "managementAddress": "grpc://mininet:50004?device_id=1",
+        "managementAddress": "grpc://localhost:50004?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
