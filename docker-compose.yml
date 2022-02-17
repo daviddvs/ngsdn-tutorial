@@ -1,10 +1,42 @@
 version: "3.4"
 
 services:
-  mininet1:
+  tofino:
+    image: 10.98.1.130:5000/p4simtool:tofino
+    hostname: tofino
+    container_name: tofino
+    privileged: true
+    tty: true
+    stdin_open: true
+    restart: always
+    volumes:
+      - ./tmp:/tmp
+      - ./tofino:/tofino
+      - ./tofino/switch://home/ubuntu/mysde/switch
+    environment:
+      - PYTHONPATH=:/root:/mininet
+      - SDE=/home/ubuntu/mysde/bf-sde-9.7.0
+      - SDE_INSTALL=/home/ubuntu/mysde/bf-sde-9.7.0/install
+    #ports:
+    #  - "50001:50001"
+    #  - "50002:50002"
+    network_mode: "host"
+    working_dir: /home/ubuntu/mysde
+    #command: sh -c "touch david" #/bin/bash -c "cp -r /tofino/switch /home/ubuntu/mysde"
+    command: bash -c "
+        ${sde}/install/bin/veth_setup.sh 
+        && cmake ${sde}/p4studio -DCMAKE_INSTALL_PREFIX=${sde}/install -DCMAKE_MODULE_PATH=${sde}/cmake -DP4_NAME=switch -DP4_PATH=/tofino/switch.p4 
+        && make switch && make install 
+        && ${sde}/run_tofino_model.sh -p switch
+      "
+    #entrypoint: "/mininet/topo-v6-1.py"
+    #build:
+    #  context: "."
+    #  network: host
+  mininet:
     image: opennetworking/ngsdn-tutorial:stratum_bmv2
-    hostname: mininet1
-    container_name: mininet1
+    hostname: mininet
+    container_name: mininet
     privileged: true
     tty: true
     stdin_open: true
@@ -23,33 +55,13 @@ services:
     # value is passed to docker-compose as an environment variable, defined in
     # the Makefile.
     #entrypoint: "/mininet/${NGSDN_TOPO_PY}"
-    entrypoint: "/mininet/topo-v6-1.py"
+    depends_on: 
+      - "tofino"
+    entrypoint: "/mininet/topo-v6-tofino.py"
     network_mode: "host"
     #build:
     #  context: "."
     #  network: host
-  mininet2:
-    image: opennetworking/ngsdn-tutorial:stratum_bmv2
-    hostname: mininet2
-    container_name: mininet2
-    privileged: true
-    tty: true
-    stdin_open: true
-    restart: always
-    volumes:
-      - ./tmp:/tmp
-      - ./mininet:/mininet
-    #ports:
-    #  - "50001:50001"
-    #  - "50002:50002"
-    #  - "50003:50003"
-    #  - "50004:50004"
-    # NGSDN_TOPO_PY is a Python-based Mininet script defining the topology. Its
-    # value is passed to docker-compose as an environment variable, defined in
-    # the Makefile.
-    #entrypoint: "/mininet/${NGSDN_TOPO_PY}"
-    entrypoint: "/mininet/topo-v6-2.py"
-    network_mode: "host"
   onos:
     image: onosproject/onos:2.2.2
     hostname: onos

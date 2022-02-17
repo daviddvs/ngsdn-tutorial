@@ -16,3 +16,5 @@ ptf/ptf.pcap
 **/.settings
 **/.factorypath
 util/.pipe_cfg
+**/*.tgz
+**/*.tar.gz

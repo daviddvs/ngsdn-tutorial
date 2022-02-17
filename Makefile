@@ -1,5 +1,6 @@
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 curr_dir := $(patsubst %/,%,$(dir $(mkfile_path)))
+sde := /home/ubuntu/mysde/bf-sde-9.7.0
 
 include util/docker/Makefile.vars
 
@@ -29,28 +30,25 @@ _docker_pull_all:
 	docker tag ${YANG_IMG}@${YANG_SHA} ${YANG_IMG}
 	docker pull ${SSHPASS_IMG}@${SSHPASS_SHA}
 	docker tag ${SSHPASS_IMG}@${SSHPASS_SHA} ${SSHPASS_IMG}
+	docker pull ${TOFINO_IMG}
+	docker tag ${TOFINO_IMG} ${TOFINO_IMG}
 
 deps: _docker_pull_all
 
 _start:
 	$(info *** Starting ONOS and Mininet (${NGSDN_TOPO_PY})... )
 	@mkdir -p tmp/onos
-	@NGSDN_TOPO_PY=${NGSDN_TOPO_PY} docker-compose up -d
+	@NGSDN_TOPO_PY=${NGSDN_TOPO_PY} sde=${sde} docker-compose up -d
 
 start: NGSDN_TOPO_PY := topo-v6.py
 start: _start
-
-start-v4: NGSDN_TOPO_PY := topo-v4.py
-start-v4: _start
-
-start-gtp: NGSDN_TOPO_PY := topo-gtp.py
-start-gtp: _start
+start: _run-tofino
 
 stop:
 	$(info *** Stopping ONOS and Mininet...)
-	docker exec -it mininet1 mn -c
-	docker exec -it mininet2 mn -c
-	@NGSDN_TOPO_PY=foo docker-compose down -t0 --remove-orphans
+	docker exec -it mininet mn -c
+	docker exec -it tofino ${sde}/install/bin/veth_teardown.sh
+	@NGSDN_TOPO_PY=foo sde=${sde} docker-compose down -t0 --remove-orphans
 
 restart: reset start
 
@@ -65,21 +63,33 @@ onos-log:
 onos-ui:
 	open ${onos_url}/ui
 
-mn1-cli:
-	$(info *** Attaching to Mininet1 CLI...)
+mn-cli:
+	$(info *** Attaching to Mininet CLI...)
 	$(info *** To detach press Ctrl-D (Mininet will keep running))
-	-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q mininet1) || echo "*** Detached from Mininet CLI"
+	-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q mininet) || echo "*** Detached from Mininet CLI"
 
-mn2-cli:
-	$(info *** Attaching to Mininet2 CLI...)
-	$(info *** To detach press Ctrl-D (Mininet will keep running))
-	-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q mininet2) || echo "*** Detached from Mininet CLI"
+mn-log:
+	docker logs -f mininet
 
-mn1-log:
-	docker logs -f mininet1
+tofino-log:
+	$(info *** Attaching to Tofino Log...)
+	$(info *** Press Ctrl-C to exit (Tofino will keep running))
+	#-@docker attach --detach-keys "ctrl-d" $(shell docker-compose ps -q tofino) || echo "*** Detached from Tofino Bash"
+	docker-compose logs -f tofino
 
-mn2-log:
-	docker logs -f mininet2
+tofino-cli:
+	$(info *** Running Tofino Shell...)
+	$(info *** Type exit to exit)
+	@docker exec -it tofino ${sde}/run_bfshell.sh
+
+tofino-bash:
+	$(info *** Running Tofino Bash...)
+	$(info *** Type exit to exit)
+	@docker exec -it tofino /bin/bash
+
+_run-tofino:
+	$(info *** Running tofino switch...)
+	@docker exec -d tofino ${sde}/run_switchd.sh -p switch
 
 _netcfg:
 	$(info *** Pushing ${NGSDN_NETCFG_JSON} to ONOS...)
@@ -87,20 +97,12 @@ _netcfg:
 		${onos_url}/v1/network/configuration -d@./mininet/${NGSDN_NETCFG_JSON}
 	@echo
 
-netcfg: NGSDN_NETCFG_JSON := netcfg.json
+netcfg: NGSDN_NETCFG_JSON := netcfg-tofino.json
 netcfg: _netcfg
 
-netcfg-sr: NGSDN_NETCFG_JSON := netcfg-sr.json
-netcfg-sr: _netcfg
-
-netcfg-gtp: NGSDN_NETCFG_JSON := netcfg-gtp.json
-netcfg-gtp: _netcfg
-
-flowrule-gtp:
-	$(info *** Pushing flowrule-gtp.json to ONOS...)
-	${onos_curl} -X POST -H 'Content-Type:application/json' \
-		${onos_url}/v1/flows?appId=rest-api -d@./mininet/flowrule-gtp.json
-	@echo
+brcfg:
+	$(info *** Configuring bridge interfaces...)
+	@sh ./util/brcfg.sh
 
 flowrule-clean:
 	$(info *** Removing all flows installed via REST APIs...)
@@ -125,6 +127,12 @@ p4-build: p4src/main.p4
 		--p4runtime-files p4src/build/p4info.txt --Wdisable=unsupported \
 		p4src/main.p4
 	@echo "*** P4 program compiled successfully! Output files are in p4src/build"
+
+p4-tofino-build: # not necessary
+	$(info *** Building Tofino P4 program...)
+	docker run --rm -v ${curr_dir}/tofino:/tofino -w /home/ubuntu/mysde ${TOFINO_IMG} \
+		/bin/bash -c "cmake ${sde}/p4studio -DCMAKE_INSTALL_PREFIX=${sde}/install -DCMAKE_MODULE_PATH=${sde}/cmake -DP4_NAME=switch -DP4_PATH=/tofino/switch.p4; \
+		make switch && make install; cp -r switch /tofino"
 
 p4-test:
 	@cd ptf && PTF_DOCKER_IMG=$(STRATUM_BMV2_IMG) ./run_tests $(TEST)
@@ -158,9 +166,6 @@ app-uninstall:
 
 app-reload: app-uninstall app-install
 
-yang-tools:
-	docker run --rm -it -v ${curr_dir}/yang/demo-port.yang:/models/demo-port.yang ${YANG_IMG}
-
 solution-apply:
 	mkdir working_copy
 	cp -r app working_copy/app
@@ -181,97 +186,21 @@ solution-revert:
 check:
 	make reset
 	# P4 starter code and app should compile
-	make p4-build
 	make app-build
-	# Check solution
-	make solution-apply
+	# Run containers
 	make start
-	make p4-build
-	make p4-test
-	make app-build
-	sleep 30
+	sleep 40
 	make app-reload
-	sleep 10
+	sleep 5
 	make netcfg
-	sleep 10
-	# The first ping(s) might fail because of a known race condition in the
-	# L2BridgingComponenet. Ping all hosts.
-	-util/mn-cmd h1a ping -c 1 2001:1:1::b
-	util/mn-cmd h1a ping -c 1 2001:1:1::b
-	-util/mn-cmd h1b ping -c 1 2001:1:1::c
-	util/mn-cmd h1b ping -c 1 2001:1:1::c
-	-util/mn-cmd h2 ping -c 1 2001:1:1::b
-	util/mn-cmd h2 ping -c 1 2001:1:1::b
-	util/mn-cmd h2 ping -c 1 2001:1:1::a
-	util/mn-cmd h2 ping -c 1 2001:1:1::c
-	-util/mn-cmd h3 ping -c 1 2001:1:2::1
-	util/mn-cmd h3 ping -c 1 2001:1:2::1
-	util/mn-cmd h3 ping -c 1 2001:1:1::a
-	util/mn-cmd h3 ping -c 1 2001:1:1::b
-	util/mn-cmd h3 ping -c 1 2001:1:1::c
-	-util/mn-cmd h4 ping -c 1 2001:1:2::1
-	util/mn-cmd h4 ping -c 1 2001:1:2::1
-	util/mn-cmd h4 ping -c 1 2001:1:1::a
-	util/mn-cmd h4 ping -c 1 2001:1:1::b
-	util/mn-cmd h4 ping -c 1 2001:1:1::c
-	make stop
-	make solution-revert
-
-check-sr:
-	make reset
-	make start-v4
-	sleep 45
-	util/onos-cmd app activate segmentrouting
-	util/onos-cmd app activate pipelines.fabric
-	sleep 15
-	make netcfg-sr
-	sleep 20
-	util/mn-cmd h1a ping -c 1 172.16.1.3
-	util/mn-cmd h1b ping -c 1 172.16.1.3
-	util/mn-cmd h2 ping -c 1 172.16.2.254
 	sleep 5
-	util/mn-cmd h2 ping -c 1 172.16.1.1
-	util/mn-cmd h2 ping -c 1 172.16.1.2
-	util/mn-cmd h2 ping -c 1 172.16.1.3
-	# ping from h3 and h4 should not work without the solution
-	! util/mn-cmd h3 ping -c 1 172.16.3.254
-	! util/mn-cmd h4 ping -c 1 172.16.4.254
-	make solution-apply
-	make netcfg-sr
-	sleep 20
-	util/mn-cmd h3 ping -c 1 172.16.3.254
-	util/mn-cmd h4 ping -c 1 172.16.4.254
-	sleep 5
-	util/mn-cmd h3 ping -c 1 172.16.1.1
-	util/mn-cmd h3 ping -c 1 172.16.1.2
-	util/mn-cmd h3 ping -c 1 172.16.1.3
-	util/mn-cmd h3 ping -c 1 172.16.2.1
-	util/mn-cmd h3 ping -c 1 172.16.4.1
-	util/mn-cmd h4 ping -c 1 172.16.1.1
-	util/mn-cmd h4 ping -c 1 172.16.1.2
-	util/mn-cmd h4 ping -c 1 172.16.1.3
-	util/mn-cmd h4 ping -c 1 172.16.2.1
-	make stop
-	make solution-revert
-
-check-gtp:
-	make reset
-	make start-gtp
-	sleep 45
-	util/onos-cmd app activate segmentrouting
-	util/onos-cmd app activate pipelines.fabric
-	util/onos-cmd app activate netcfghostprovider
-	sleep 15
-	make solution-apply
-	make netcfg-gtp
-	sleep 20
-	util/mn-cmd enodeb ping -c 1 10.0.100.254
-	util/mn-cmd pdn ping -c 1 10.0.200.254
-	util/onos-cmd route-add 17.0.0.0/24 10.0.100.1
-	make flowrule-gtp
-	# util/mn-cmd requires a TTY because it uses docker -it option
-	# hence we use screen for putting it in the background
-	screen -d -m util/mn-cmd pdn /mininet/send-udp.py
-	util/mn-cmd enodeb /mininet/recv-gtp.py -e
-	make stop
-	make solution-revert
+	# The first ping(s) might fail because of a known race condition in Ipv6SimpleRoutingComponent
+	-util/mn-cmd h1 ping -c 1 2001:1:1::2
+	-util/mn-cmd h2 ping -c 1 2001:1:1::1
+	# Reload app
+	make app-reload
+	-util/mn-cmd h1 ip -6 neigh replace 2001:1:1::2 lladdr 00:00:00:00:00:20 dev h1-eth0
+	-util/mn-cmd h2 ip -6 neigh replace 2001:1:1::1 lladdr 00:00:00:00:00:10 dev h2-eth0
+	-util/mn-cmd h1 ping -c 1 2001:1:1::2
+	-util/mn-cmd h2 ping -c 1 2001:1:1::1
+	# P4Simtool is ready
