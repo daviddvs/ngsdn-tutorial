@@ -66,9 +66,9 @@ services:
     image: onosproject/onos:2.2.2
     hostname: onos
     container_name: onos
-    ports:
-      - "8181:8181" # HTTP
-      - "8101:8101" # SSH (CLI)
+    #ports:
+    #  - "8181:8181" # HTTP
+    #  - "8101:8101" # SSH (CLI)
     volumes:
       - ./tmp/onos:/root/onos/apache-karaf-4.2.8/data/tmp
     environment:
