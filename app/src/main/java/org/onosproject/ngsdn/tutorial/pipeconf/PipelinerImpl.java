@@ -63,6 +63,7 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
     private DeviceId deviceId;
 
 
+
     @Override
     public void init(DeviceId deviceId, PipelinerContext context) {
         this.deviceId = deviceId;
@@ -88,6 +89,7 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 .map(i -> (Instructions.OutputInstruction) i)
                 .anyMatch(i -> i.port().equals(PortNumber.CONTROLLER));
 
+
         if (!hasCloneToCpuAction) {
             // We support only objectives for clone to CPU behaviours (e.g. for
             // host and link discovery)
@@ -99,6 +101,7 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 .withId(PiActionId.of(CLONE_TO_CPU))
                 .build();
 
+
         final FlowRule.Builder ruleBuilder = DefaultFlowRule.builder()
                 .forTable(PiTableId.of(ACL_TABLE))
                 .forDevice(deviceId)
@@ -107,6 +110,8 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 .withPriority(obj.priority())
                 .withTreatment(DefaultTrafficTreatment.builder()
                                        .piTableAction(cloneToCpuAction).build());
+
+
 
         if (obj.permanent()) {
             ruleBuilder.makePermanent();

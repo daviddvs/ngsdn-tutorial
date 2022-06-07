@@ -62,40 +62,37 @@ class TutorialTopo(Topo):
         leaf1 = self.addSwitch('leaf1', cls=StratumBmv2Switch, cpuport=CPU_PORT)
         # gRPC port 50002
         leaf2 = self.addSwitch('leaf2', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-
-        # Spines
         # gRPC port 50003
-        spine1 = self.addSwitch('spine1', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        leaf3 = self.addSwitch('leaf3', cls=StratumBmv2Switch, cpuport=CPU_PORT)
         # gRPC port 50004
-        spine2 = self.addSwitch('spine2', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        leaf4 = self.addSwitch('leaf4', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        # gRPC port 50005
+        leaf5 = self.addSwitch('leaf5', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        # gRPC port 50006
+        leaf6 = self.addSwitch('leaf6', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+
 
         # Switch Links
-        self.addLink(spine1, leaf1)
-        self.addLink(spine1, leaf2)
-        self.addLink(spine2, leaf1)
-        self.addLink(spine2, leaf2)
+        self.addLink(leaf2, leaf3)
+        self.addLink(leaf3, leaf4)
+        self.addLink(leaf1, leaf5)
+        self.addLink(leaf5, leaf4)
+        self.addLink(leaf6, leaf2)
+        self.addLink(leaf6, leaf4)
+        self.addLink(leaf6, leaf5)
+        self.addLink(leaf1, leaf2)
 
         # IPv6 hosts attached to leaf 1
-        h1a = self.addHost('h1a', cls=IPv6Host, mac="00:00:00:00:00:1A",
-                           ipv6='2001:1:1::a/64', ipv6_gw='2001:1:1::ff')
-        h1b = self.addHost('h1b', cls=IPv6Host, mac="00:00:00:00:00:1B",
-                           ipv6='2001:1:1::b/64', ipv6_gw='2001:1:1::ff')
-        h1c = self.addHost('h1c', cls=IPv6Host, mac="00:00:00:00:00:1C",
-                           ipv6='2001:1:1::c/64', ipv6_gw='2001:1:1::ff')
-        h2 = self.addHost('h2', cls=IPv6Host, mac="00:00:00:00:00:20",
-                          ipv6='2001:1:2::1/64', ipv6_gw='2001:1:2::ff')
-        self.addLink(h1a, leaf1)  # port 3
-        self.addLink(h1b, leaf1)  # port 4
-        self.addLink(h1c, leaf1)  # port 5
-        self.addLink(h2, leaf1)  # port 6
+        h1 = self.addHost('h1', cls=IPv6Host, mac="00:00:00:00:00:1A",
+                          ipv6='2001:1:1::a/64', ipv6_gw='2001:1:1::ff')
 
-        # IPv6 hosts attached to leaf 2
-        h3 = self.addHost('h3', cls=IPv6Host, mac="00:00:00:00:00:30",
-                          ipv6='2001:2:3::1/64', ipv6_gw='2001:2:3::ff')
-        h4 = self.addHost('h4', cls=IPv6Host, mac="00:00:00:00:00:40",
-                          ipv6='2001:2:4::1/64', ipv6_gw='2001:2:4::ff')
-        self.addLink(h3, leaf2)  # port 3
-        self.addLink(h4, leaf2)  # port 4
+        self.addLink(h1, leaf1)  # port 3
+
+        # IPv6 hosts attached to leaf 4
+        h2 = self.addHost('h2', cls=IPv6Host, mac="00:00:00:00:00:1B",
+                          ipv6='2001:1:1::b/64', ipv6_gw='2001:1:1::ff')
+
+        self.addLink(h2, leaf4)  # port 4
 
 
 def main():

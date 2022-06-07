@@ -2,12 +2,12 @@
   "devices": {
     "device:leaf1": {
       "basic": {
-        "managementAddress": "grpc://localhost:50001?device_id=1",
+        "managementAddress": "grpc://mininet:50001?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
-        "gridX": 200,
-        "gridY": 600
+        "gridX": 150,
+        "gridY": 400
       },
       "fabricDeviceConfig": {
         "myStationMac": "00:aa:00:00:00:01",
@@ -17,56 +17,58 @@
     },
     "device:leaf2": {
       "basic": {
-        "managementAddress": "grpc://localhost:50002?device_id=1",
+        "managementAddress": "grpc://mininet:50002?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
-        "gridX": 800,
-        "gridY": 600
+        "gridX": 450,
+        "gridY": 400
       },
       "fabricDeviceConfig": {
         "myStationMac": "00:aa:00:00:00:02",
-        "mySid": "3:102:2::",
+        "mySid": "3:101:2::",
         "isSpine": false
       }
     },
-    "device:spine1": {
+    "device:leaf3": {
       "basic": {
-        "managementAddress": "grpc://localhost:50003?device_id=1",
+        "managementAddress": "grpc://mininet:50003?device_id=1",
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
-        "gridX": 400,
-        "gridY": 400
+        "gridX": 300,
+        "gridY": 500
       },
       "fabricDeviceConfig": {
-        "myStationMac": "00:bb:00:00:00:01",
-        "mySid": "3:201:2::",
-        "isSpine": true
-      }
-    },
-    "device:spine2": {
-      "basic": {
-        "managementAddress": "grpc://localhost:50004?device_id=1",
-        "driver": "stratum-bmv2",
-        "pipeconf": "org.onosproject.ngsdn-tutorial",
-        "locType": "grid",
-        "gridX": 600,
-        "gridY": 400
-      },
-      "fabricDeviceConfig": {
-        "myStationMac": "00:bb:00:00:00:02",
-        "mySid": "3:202:2::",
-        "isSpine": true
+        "myStationMac": "00:aa:00:00:00:03",
+        "mySid": "3:101:2::",
+        "isSpine": false
       }
     }
   },
+
   "ports": {
+    "device:leaf1/1": {
+      "interfaces": [
+        {
+          "name": "leaf1-1",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf1/2": {
+      "interfaces": [
+        {
+          "name": "leaf1-2",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
     "device:leaf1/3": {
       "interfaces": [
         {
           "name": "leaf1-3",
-          "ips": ["2001:1:1::ff/64"]
+          "ips": ["172.16.1.254/24"]
         }
       ]
     },
@@ -74,23 +76,23 @@
       "interfaces": [
         {
           "name": "leaf1-4",
-          "ips": ["2001:1:1::ff/64"]
+          "ips": ["172.16.1.254/24"]
         }
       ]
     },
-    "device:leaf1/5": {
+    "device:leaf2/1": {
       "interfaces": [
         {
-          "name": "leaf1-5",
-          "ips": ["2001:1:1::ff/64"]
+          "name": "leaf2-1",
+          "ips": ["172.16.1.254/24"]
         }
       ]
     },
-    "device:leaf1/6": {
+    "device:leaf2/2": {
       "interfaces": [
         {
-          "name": "leaf1-6",
-          "ips": ["2001:1:2::ff/64"]
+          "name": "leaf2-2",
+          "ips": ["172.16.1.254/24"]
         }
       ]
     },
@@ -98,7 +100,7 @@
       "interfaces": [
         {
           "name": "leaf2-3",
-          "ips": ["2001:2:3::ff/64"]
+          "ips": ["172.16.1.254/24"]
         }
       ]
     },
@@ -106,58 +108,67 @@
       "interfaces": [
         {
           "name": "leaf2-4",
-          "ips": ["2001:2:4::ff/64"]
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf3/1": {
+      "interfaces": [
+        {
+          "name": "leaf3-1",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf3/2": {
+      "interfaces": [
+        {
+          "name": "leaf3-2",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf3/3": {
+      "interfaces": [
+        {
+          "name": "leaf3-3",
+          "ips": ["172.16.1.254/24"]
         }
       ]
     }
   },
+
   "hosts": {
     "00:00:00:00:00:1A/None": {
       "basic": {
-        "name": "h1a",
+        "name": "h1",
         "locType": "grid",
-        "gridX": 100,
-        "gridY": 700
+        "gridX": 0,
+        "gridY": 400
       }
     },
     "00:00:00:00:00:1B/None": {
       "basic": {
-        "name": "h1b",
+        "name": "h2",
         "locType": "grid",
-        "gridX": 100,
-        "gridY": 800
+        "gridX": 600,
+        "gridY": 400
       }
     },
     "00:00:00:00:00:1C/None": {
       "basic": {
-        "name": "h1c",
-        "locType": "grid",
-        "gridX": 250,
-        "gridY": 800
-      }
-    },
-    "00:00:00:00:00:20/None": {
-      "basic": {
-        "name": "h2",
-        "locType": "grid",
-        "gridX": 400,
-        "gridY": 700
-      }
-    },
-    "00:00:00:00:00:30/None": {
-      "basic": {
         "name": "h3",
         "locType": "grid",
-        "gridX": 750,
-        "gridY": 700
+        "gridX": 0,
+        "gridY": 500
       }
     },
-    "00:00:00:00:00:40/None": {
+    "00:00:00:00:00:1D/None": {
       "basic": {
-        "name": "h4",
+        "name": "collector",
         "locType": "grid",
-        "gridX": 850,
-        "gridY": 700
+        "gridX": 600,
+        "gridY": 500
       }
     }
   }
