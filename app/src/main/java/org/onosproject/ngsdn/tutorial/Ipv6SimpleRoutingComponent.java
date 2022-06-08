@@ -46,6 +46,7 @@ import org.onosproject.net.flow.FlowRuleService;
 import org.onosproject.net.flow.criteria.PiCriterion;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
 import org.onosproject.net.flow.TrafficTreatment;
+import org.onosproject.net.flow.IndexTableId;
 import org.onosproject.net.group.GroupDescription;
 import org.onosproject.net.group.GroupService;
 import org.onosproject.net.host.HostEvent;
@@ -87,9 +88,12 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.lang.Integer;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.nio.ByteBuffer;
@@ -358,44 +362,44 @@ public class Ipv6SimpleRoutingComponent {
             if (ethernet.getEtherType() == Ethernet.TYPE_ARP){
                 log.info("ARP packet received form switch, EtherType: {}", Integer.toHexString(ethernet.getEtherType()));
                 ARP arpRequest = (ARP) ethernet.getPayload();
-                Ip4Address srcIP = Ip4Address.valueOf(arpRequest.getTargetProtocolAddress());
-                //Llamada a setUpPath 
-                MacAddress srcMAC = null;
+
+                MacAddress srcMAC = MacAddress.valueOf(arpRequest.getSenderHardwareAddress());
+                Ip4Address dstIP = Ip4Address.valueOf(arpRequest.getTargetProtocolAddress());
+                Map<String, String> map = Utils.getIpMac();
+                MacAddress dstMAC = MacAddress.valueOf(map.get(dstIP.toString()));
                 boolean reply = true;
-                if(srcIP.toString().equals("172.16.1.2")){
-                    srcMAC = MacAddress.valueOf("00:00:00:00:00:1B");
+                if(dstMAC != null){
+                    Ethernet arpReply = ARP.buildArpReply(dstIP, dstMAC, ethernet);
+                    sendPacket(context,arpReply,srcMAC.toString());
+                    log.info("Reply created for target IP: {}", dstIP.toString());
+                    //SetUpPath -> we should check if the path already exists to avoid duplications
                 }
-                else if (srcIP.toString().equals("172.16.1.1")){
-                    srcMAC = MacAddress.valueOf("00:00:00:00:00:1A");
+                else {
+                    log.warn("ARP request received asking for unknown IP address: {}",dstIP.toString());
                 }
-                else{
-                    log.warn("ARP request received asking for unknown IP address: {}",srcIP.toString());
-                    reply=false;
-                }
-
-                if(reply){
-                    Ethernet arpReply = ARP.buildArpReply(srcIP, srcMAC, ethernet);
-                    log.info("Reply created for target IP: {}",srcIP.toString());
-                    sendPacket(context,arpReply);
-                }
-
             }
         }
     }
 
-    private void sendPacket(PacketContext context, Ethernet pkt) {
+    private void sendPacket(PacketContext context, Ethernet pkt, String hostMac) {
  
         ConnectPoint sourcePoint = context.inPacket().receivedFrom();
         
+        /**
         long port = 3;
-        PortNumber outPort = PortNumber.portNumber(port); 
+        PortNumber outPort = PortNumber.portNumber(port);
         PiAction forwardAction = PiAction.builder()
                     .withId(PiActionId.of("IngressPipeImpl.set_egress_port"))
                     .withParameter(new PiActionParam(PiActionParamId.of("port_num"),outPort.toLong()))
                     .build();
+        TrafficTreatment treatment = DefaultTrafficTreatment.builder().piTableAction(forwardAction).build();
+        */
 
-        //TrafficTreatment treatment = DefaultTrafficTreatment.builder().piTableAction(forwardAction).build();
-        TrafficTreatment treatment = DefaultTrafficTreatment.builder().setOutput(outPort).build();
+        HostId hostId = HostId.hostId(hostMac+"/None");
+        Host host = hostService.getHost(hostId);
+        PortNumber outPort = host.location().port();
+
+        TrafficTreatment treatment = DefaultTrafficTreatment.builder().setOutput(outPort).build();        
         
         OutboundPacket packet = new DefaultOutboundPacket(sourcePoint.deviceId(), 
                 treatment, 
@@ -472,7 +476,7 @@ public class Ipv6SimpleRoutingComponent {
                     src.location(), srcId, dstId);
             return;
         }
-        byte id = 0;
+        byte id = 1;
         for (Path path : alternate_paths) {
             // Install rules in the path
             

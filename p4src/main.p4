@@ -26,7 +26,7 @@
 // the controller will be seen by the P4 pipeline as coming from the CPU_PORT.
 #define CPU_PORT 255
 #define COLLECTOR_PORT 4
-#define DEFAULT_ROUTE 1
+#define DEFAULT_ROUTE 2
 
 // CPU_CLONE_SESSION_ID specifies the mirroring session for packets to be cloned
 // to the CPU port. Packets associated with this session ID will be cloned to
@@ -463,9 +463,13 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
     register<bit<8>>(128) myReg;
     apply {
 
-        myReg.write((bit<32>)REG_IDX, DEFAULT_ROUTE);
+        //myReg.write((bit<32>)REG_IDX, DEFAULT_ROUTE);
         myReg.read(local_metadata.path_id, (bit<32>)REG_IDX);
+        if(local_metadata.path_id == 0){
+            local_metadata.path_id = DEFAULT_ROUTE;
+        }
         //local_metadata.path_id = DEFAULT_ROUTE;
+        
         if (sw_id_table.apply().hit){
         }
 

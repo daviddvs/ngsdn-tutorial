@@ -43,6 +43,8 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -144,5 +146,14 @@ public final class Utils {
             log.error("Interrupted!", e);
             Thread.currentThread().interrupt();
         }
+    }
+
+    public static Map<String, String> getIpMac(){
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("172.16.1.1", "00:00:00:00:00:1A");
+        map.put("172.16.1.2", "00:00:00:00:00:1B");
+        map.put("172.16.1.3", "00:00:00:00:00:1C");
+        map.put("172.16.1.4", "00:00:00:00:00:1D");
+        return map;
     }
 }
